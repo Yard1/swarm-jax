@@ -34,8 +34,8 @@ if __name__ == '__main__':
         for i in range(tpus):
             conns += get_connection(f"swarm-jax-test-{i}", zone)
 
-        with multiprocessing.Pool(processes=tpus) as p:
-            p.map(functools.partial(start_ray, address=address), conns)
+        for conn in conns:
+            start_ray(conn, address=address)
 
         train_dataset = TextLoader("data/enwik8", batchsize=(1, 16), sample_size=128, length=90000000)
 
