@@ -110,7 +110,7 @@ def get_connection(
 ):
     info = check_tpu(name, zone)
     outputs = []
-    pkey = paramiko.RSAKey(filename="~/.ssh/google_compute_engine")
+    pkey = paramiko.RSAKey(filename=os.path.expanduser('~/.ssh/google_compute_engine'))
 
     for i in info["networkEndpoints"]:
         outputs.append(Connection(i["ipAddress"],
