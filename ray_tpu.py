@@ -6,6 +6,7 @@ import time
 import glob
 import requests
 from fabric import Connection
+import paramiko
 
 
 @functools.lru_cache()
@@ -109,10 +110,13 @@ def get_connection(
 ):
     info = check_tpu(name, zone)
     outputs = []
+    pkey = paramiko.RSAKey(filename="~/.ssh/google_compute_engine")
+
     for i in info["networkEndpoints"]:
         outputs.append(Connection(i["ipAddress"],
+                                    user="c-abaum",
                                   connect_kwargs={
-                                      "key_filename": os.path.expanduser('~/.ssh/google_compute_engine'), }))
+                                      "pkey": pkey }))
     return outputs
 
 
