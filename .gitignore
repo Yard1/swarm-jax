@@ -131,3 +131,4 @@ dmypy.json
 .vscode
 
 *.lgbm
+service-account-file.json

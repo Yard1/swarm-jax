@@ -11,7 +11,7 @@ if __name__ == '__main__':
     ray.init(address='auto')
 
     try:
-        train_dataset = TextLoader("data/enwik8", batchsize=(1, 16), sample_size=128, length=90000000)
+        train_dataset = TextLoader("data/enwik8", batchsize=(4, 16), sample_size=1024, length=90000000)
 
         optimizer = optax.chain(
             optax.clip_by_global_norm(0.25),
