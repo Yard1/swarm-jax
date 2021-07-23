@@ -24,7 +24,7 @@ def layer_norm(x: jnp.ndarray, name: Optional[str] = None) -> jnp.ndarray:
                         name=name)(x)
 
 
-@ray.remote(resources={"tpu": 1})
+@ray.remote(resources={"TPU": 1})
 class EmbeddingLayer(object):
     def __init__(self, obs, vocab: int, d_model: int, optimizer: optax.GradientTransformation,
                  precision: NetworkPrecision):
@@ -139,7 +139,7 @@ class EmbeddingLayer(object):
             return True
 
 
-@ray.remote(resources={"tpu": 1})
+@ray.remote(resources={"TPU": 1})
 class ProjLayer(object):
     def __init__(self, data, vocab: int, d_model: int, optimizer: optax.GradientTransformation, loss_scale: float,
                  precision: NetworkPrecision):

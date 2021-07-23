@@ -15,7 +15,7 @@ from .swarm_layer import save_checkpoint, load_checkpoint, opt_state, run_thread
     quantize, dequantize, init_fn
 
 
-@ray.remote(resources={"tpu": 1})
+@ray.remote(resources={"TPU": 1})
 class ReversibleLayer(object):
     def __init__(
             self,

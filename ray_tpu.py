@@ -143,4 +143,4 @@ def start_ray(conn, address):
         print(conn.run('ray stop -f'))
     except:
         pass
-    print(conn.run(f"ray start --address={address} --load-code-from-local --resources='" + '{"tpu": 1}\''))
+    print(conn.run(f"ray start --address={address} --load-code-from-local --resources='" + '{"TPU": 1}\''))
