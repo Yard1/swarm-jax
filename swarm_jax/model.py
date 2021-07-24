@@ -101,7 +101,7 @@ n_layer = 6
 def char_layer_init(i):
     if i % 2:
         f = MultiHeadAttentionFixed(
-            num_heads=8,
+            num_heads=4,
             key_size=128,
             w_init_scale=2. / n_layer,
             name=f'l{i}_f_attn',
@@ -118,7 +118,7 @@ def char_layer_init(i):
             widening_factor=4
         )
         g = MultiHeadAttentionFixed(
-            num_heads=8,
+            num_heads=4,
             key_size=128,
             w_init_scale=2. / n_layer,
             name=f'l{i}_g_attn',
