@@ -10,15 +10,16 @@ ray.init(address='auto')
 print('''This cluster consists of
     {} nodes in total
     {} CPU resources in total
-'''.format(len(ray.nodes()), ray.cluster_resources()['CPU']))
+'''.format(len(ray.nodes()), ray.cluster_resources()))
 
-@ray.remote
+@ray.remote(resources={"TPU": 1})
 def f():
     time.sleep(0.1)
     # Return IP address.
+    print("I am running on a TPU!")
     return socket.gethostbyname(socket.gethostname())
 
-object_ids = [f.remote() for _ in range(10000)]
+object_ids = [f.remote() for _ in range(100)]
 ip_addresses = ray.get(object_ids)
 
 print('Tasks executed')
