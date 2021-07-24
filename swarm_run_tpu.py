@@ -55,5 +55,5 @@ if __name__ == '__main__':
     prec = NetworkPrecision(fwd_act="float32", rev_act="float32", grad="float32")
 
     model = SwarmCharTransformerBig
-    swarm = Swarm(model, optimizer, 2 ** 16, train_dataset.get_samples, prec)
+    swarm = Swarm(model, optimizer, 2 ** 16, train_dataset.get_samples, prec, max_concurrency=4)
     swarm.run(100000, "runs/512_30L", "ckpt/512_30L")
