@@ -60,7 +60,7 @@ class Swarm:
         ckpt_loads = [layer.load.remote(f"{ckpt_path}/{i}/") for i, layer in enumerate(self.all_layers)]
         print(f"checkpoint load status: {ray.get(ckpt_loads)}")
 
-        pool = ThreadPool(self.max_concurrency)  # have max 16 concurrent examples in the network
+        pool = ThreadPool(self.max_concurrency*2)  # have max 16 concurrent examples in the network
 
         for e in range(epochs):
             if e % 5000 == 0:
