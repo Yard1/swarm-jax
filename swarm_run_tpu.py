@@ -46,7 +46,7 @@ class TextLoader():
         return {"target": target, "obs": obs}
 
 
-def run_swarm(dataset: str, num_tpus: int):
+def run_swarm(dataset: str, num_tpus: int, epochs: int):
     assert num_tpus > 2
     assert ray.cluster_resources()["TPU"] >= num_tpus
     train_dataset = TextLoader(dataset,
@@ -61,7 +61,9 @@ def run_swarm(dataset: str, num_tpus: int):
                             rev_act="float32",
                             grad="float32")
 
-    model = SwarmCharTransformerBig(n_layers = num_tpus - 2)
+    # n_layers specifies the number of Reversible Layers
+    # 1 Embedding and 1 Projection layers will always be added
+    model = SwarmCharTransformerBig(n_layers=num_tpus - 2)
     print("creating swarm")
     swarm = Swarm(model,
                   optimizer,
@@ -70,19 +72,20 @@ def run_swarm(dataset: str, num_tpus: int):
                   prec,
                   max_concurrency=8)
     print("swarm created")
-    swarm.run(10, "runs/512_30L", "ckpt/512_30L")
+    swarm.run(epochs, "runs/512_30L", "ckpt/512_30L")
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("dataset",
-                        type=str,
-                        help="path to the dataset to use")
+    parser.add_argument("dataset", type=str, help="path to the dataset to use")
     parser.add_argument(
         "num_tpus",
         type=int,
         help=("number of TPUs available. Must be at least 3. The resulting "
-              "model will have as many layers as there are TPUs."))
+              "model will have as many layers as there are TPUs"))
+    parser.add_argument("epochs",
+                        type=int,
+                        help=("number of epochs to run for"))
     parser.add_argument("--address",
                         required=False,
                         type=str,
@@ -90,4 +93,4 @@ if __name__ == '__main__':
     args, _ = parser.parse_known_args()
 
     ray.init(address=args.address or "auto")
-    run_swarm(args.dataset, args.num_tpus)
+    run_swarm(args.dataset, args.num_tpus, args.epochs)
