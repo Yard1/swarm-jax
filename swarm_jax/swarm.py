@@ -18,7 +18,8 @@ class Swarm:
                  optimizer: optax.GradientTransformation,
                  loss_scale: float,
                  dataloader: Callable,
-                 precision: NetworkPrecision):
+                 precision: NetworkPrecision,
+                 max_concurrency: int):
         self.model = model
         self.optimizer = optax.chain(
             optax.scale(1 / loss_scale),
@@ -27,24 +28,25 @@ class Swarm:
         self.dataloader = dataloader
         self.minibatches = 1
         self.loss_scale = loss_scale
+        self.max_concurrency = max_concurrency
 
         assert ray.is_initialized()  # needs a valid ray cluster to start
 
         example = self.dataloader()
-        self.embedding = EmbeddingLayer.options(max_concurrency=8).remote(example["obs"], self.model.vocab,
+        self.embedding = EmbeddingLayer.options(max_concurrency=self.max_concurrency).remote(example["obs"], self.model.vocab,
                                                                           self.model.d_model, self.optimizer, precision)
         self.embedding.run.remote()
 
         x, _ = self.embedding.embed_forward.remote(example["obs"])
 
-        self.proj = ProjLayer.options(max_concurrency=8).remote(x, self.model.vocab, self.model.d_model, self.optimizer,
+        self.proj = ProjLayer.options(max_concurrency=self.max_concurrency).remote(x, self.model.vocab, self.model.d_model, self.optimizer,
                                                                 self.loss_scale, precision)
         self.proj.run.remote()
 
         self.layers = []
         for i in range(model.rev_layers):
             self.layers.append(
-                ReversibleLayer.options(max_concurrency=8).remote(self.model.rev_init, i, x, self.optimizer, precision))
+                ReversibleLayer.options(max_concurrency=self.max_concurrency).remote(self.model.rev_init, i, x, self.optimizer, precision))
 
         for l in self.layers:
             l.run.remote()
@@ -58,7 +60,7 @@ class Swarm:
         ckpt_loads = [layer.load.remote(f"{ckpt_path}/{i}/") for i, layer in enumerate(self.all_layers)]
         print(f"checkpoint load status: {ray.get(ckpt_loads)}")
 
-        pool = ThreadPool(16)  # have max 16 concurrent examples in the network
+        pool = ThreadPool(self.max_concurrency*2)  # have max 16 concurrent examples in the network
 
         for e in range(epochs):
             if e % 5000 == 0:

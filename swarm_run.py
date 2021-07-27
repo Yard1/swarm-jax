@@ -14,7 +14,7 @@ from swarm_jax.swarm import Swarm
 import ray
 import optax
 
-ray.init(resources={"tpu": 999})  # pretend we have infinite tpus lol
+ray.init(resources={"TPU": 999})  # pretend we have infinite tpus lol
 
 train_dataset = TextLoader("data/enwik8", batchsize=(1, 16), sample_size=128, length=90000000)
 
@@ -24,7 +24,7 @@ optimizer = optax.chain(
 
 prec = NetworkPrecision(fwd_act="uint16", rev_act="uint16", grad="uint16")
 
-model = SwarmCharTransformer
+model = SwarmCharTransformer(n_layers=6)
 swarm = Swarm(model, optimizer, 2 ** 16, train_dataset.get_samples, prec)
 swarm.run(100000, "runs/512_30L", "ckpt/512_30L")
 
