@@ -24,7 +24,7 @@ optimizer = optax.chain(
 
 prec = NetworkPrecision(fwd_act="uint16", rev_act="uint16", grad="uint16")
 
-model = SwarmCharTransformer
+model = SwarmCharTransformer(n_layers=6)
 swarm = Swarm(model, optimizer, 2 ** 16, train_dataset.get_samples, prec)
 swarm.run(100000, "runs/512_30L", "ckpt/512_30L")
 

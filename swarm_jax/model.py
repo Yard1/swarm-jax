@@ -3,6 +3,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from typing import Optional, Callable
+from functools import partial
 
 
 class MultiHeadAttentionFixed(hk.Module):
@@ -96,9 +97,7 @@ class SwarmModel:
         self.rev_layers = rev_layers
 
 
-n_layer = 5
-
-def char_layer_init(i):
+def char_layer_init(i, n_layer):
     if i % 2:
         f = MultiHeadAttentionFixed(
             num_heads=8,
@@ -126,16 +125,18 @@ def char_layer_init(i):
     return f, g
 
 
-SwarmCharTransformer = SwarmModel(
-    vocab=256,
-    d_model=512,
-    rev_init=char_layer_init,
-    rev_layers=n_layer
-)
+def SwarmCharTransformer(n_layers: int):
+    return SwarmModel(
+        vocab=256,
+        d_model=512,
+        rev_init=partial(char_layer_init, n_layer=n_layers),
+        rev_layers=n_layers
+    )
 
-SwarmCharTransformerBig = SwarmModel(
-    vocab=256,
-    d_model=2048,
-    rev_init=char_layer_init,
-    rev_layers=n_layer
-)
+def SwarmCharTransformerBig(n_layers: int):
+    return SwarmModel(
+        vocab=256,
+        d_model=2048,
+        rev_init=partial(char_layer_init, n_layer=n_layers),
+        rev_layers=n_layers
+    )

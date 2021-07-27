@@ -1,13 +1,12 @@
 import optax
 import ray
-import traceback
+import argparse
 
 from swarm_jax.model import SwarmCharTransformerBig
 from swarm_jax.swarm import Swarm
 from swarm_jax.swarm_layer import NetworkPrecision
 
 import os
-import time
 
 import mmap
 import numpy as np
@@ -23,10 +22,13 @@ class TextLoader():
         if isinstance(batchsize, tuple):
             self.batch_shape = batchsize
         else:
-            self.batch_shape = (batchsize,)
+            self.batch_shape = (batchsize, )
         self.ss = sample_size
 
-        self.np_mm = np.memmap(fname, dtype='uint8', mode='r', shape=(self.file_size,))
+        self.np_mm = np.memmap(fname,
+                               dtype='uint8',
+                               mode='r',
+                               shape=(self.file_size, ))
 
     def get_samples(self):
         sample = np.random.randint(0, self.file_size - 2 - self.ss, self.bs)
@@ -36,26 +38,56 @@ class TextLoader():
             batch[:, i] = self.np_mm[sample + i]
 
         target = batch[:, 1:].astype(np.uint32)
-        target = target.reshape(self.batch_shape + (self.ss,))
+        target = target.reshape(self.batch_shape + (self.ss, ))
 
         obs = batch[:, :-1].astype(np.uint32)
-        obs = obs.reshape(self.batch_shape + (self.ss,))
+        obs = obs.reshape(self.batch_shape + (self.ss, ))
 
         return {"target": target, "obs": obs}
 
-if __name__ == '__main__':
-    ray.init(address='auto')
 
-    train_dataset = TextLoader("swarm-jax/data/enwik8", batchsize=(8, 8), sample_size=1024, length=90000000)
+def run_swarm(dataset: str, num_tpus: int):
+    assert num_tpus > 2
+    assert ray.cluster_resources()["TPU"] >= num_tpus
+    train_dataset = TextLoader(dataset,
+                               batchsize=(8, 8),
+                               sample_size=1024,
+                               length=90000000)
 
-    optimizer = optax.chain(
-        optax.clip_by_global_norm(0.25),
-        optax.adam(2e-4, b1=0.9, b2=0.99, eps=1e-5))
+    optimizer = optax.chain(optax.clip_by_global_norm(0.25),
+                            optax.adam(2e-4, b1=0.9, b2=0.99, eps=1e-5))
 
-    prec = NetworkPrecision(fwd_act="float32", rev_act="float32", grad="float32")
+    prec = NetworkPrecision(fwd_act="float32",
+                            rev_act="float32",
+                            grad="float32")
 
-    model = SwarmCharTransformerBig
+    model = SwarmCharTransformerBig(n_layers = num_tpus - 2)
     print("creating swarm")
-    swarm = Swarm(model, optimizer, 2 ** 16, train_dataset.get_samples, prec, max_concurrency=4)
+    swarm = Swarm(model,
+                  optimizer,
+                  2**16,
+                  train_dataset.get_samples,
+                  prec,
+                  max_concurrency=8)
     print("swarm created")
-    swarm.run(100000, "runs/512_30L", "ckpt/512_30L")
+    swarm.run(10, "runs/512_30L", "ckpt/512_30L")
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("dataset",
+                        type=str,
+                        help="path to the dataset to use")
+    parser.add_argument(
+        "num_tpus",
+        type=int,
+        help=("number of TPUs available. Must be at least 3. The resulting "
+              "model will have as many layers as there are TPUs."))
+    parser.add_argument("--address",
+                        required=False,
+                        type=str,
+                        help="the address to use for Ray")
+    args, _ = parser.parse_known_args()
+
+    ray.init(address=args.address or "auto")
+    run_swarm(args.dataset, args.num_tpus)
